@@ -4,7 +4,8 @@ const router = express.Router();
 
 router.post('/auth', systemeController.authenticated);
 router.post('/addProjet', systemeController.addProjet);
-router.get('/listProjet/:uid', systemeController.listProjet);
+router.get('/deleteProjet/:id', systemeController.deleteProjet);
+router.post('/editProjet', systemeController.editProjet);
 
 
 module.exports = router;

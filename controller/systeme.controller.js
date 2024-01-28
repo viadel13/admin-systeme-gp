@@ -30,9 +30,11 @@ const authenticated = async (req, res) => {
 const addProjet = async (req, res) => {
   const { projet, date, description, priorite } = req.body.values;
   const uid = req.body.uid;
+  const id = req.body.id;
 
   try {
     const response = await db.collection('projets').add({
+      id,
       projet,
       date,
       description,
@@ -45,31 +47,92 @@ const addProjet = async (req, res) => {
   }
 };
 
-const listProjet = async (req, res) => {
-  const uid = req.params.uid;
+const editProjet = async (req, res) => {
+
+  const { projet, date, description, priorite } = req.body.values;
+  const uid = req.body.uid;
+  const id = req.body.id;
 
   try {
     const projetRef = db.collection('projets');
-    const snapshot = await projetRef.where('uid', '==', `${uid}`).get();
+    const snapshot = await projetRef.where('id', '==', id).get();
+
     if (snapshot.empty) {
       console.log('No matching documents.');
-      return;
-    }  
-    const projets = []; 
+      return res.status(404).json({ error: 'Aucun projet trouvé pour cet utilisateur.' });
+    }
 
-    snapshot.forEach(doc => {
-      projets.push(doc.data()); 
-      console.log(projets);
+    snapshot.forEach(async (doc) => {
+      try {
+        await projetRef.doc(doc.id).update({
+          projet: projet || doc.data().projet,
+          date: date || doc.data().date,
+          description: description || doc.data().description,
+          priorite: priorite || doc.data().priorite
+        });
+      } catch (error) {
+        console.error('Erreur lors de la mise à jour du projet :', error);
+        return res.status(500).json({ error: 'Erreur lors de la mise à jour du projet.' });
+      }
     });
 
-    res.json(projets);
-  } catch (error) {
+    return res.json({ message: 'Projet mis à jour avec succès.' });
 
+  } catch (error) {
+    console.error('Erreur lors de la récupération des projets :', error);
+    return res.status(500).json({ error: 'Erreur lors de la récupération des projets.' });
   }
 };
+
+const deleteProjet = async (req, res) => {
+  const id = req.params.id;
+  console.log(id);
+  try {
+    const projetRef = db.collection('projets');
+    const snapshot = await projetRef.where('id', '==', id).get();
+
+    snapshot.forEach(async (doc) => {
+      const documentRef = db.collection('projets').doc(doc.id);
+      await documentRef.delete();
+      console.log('Document supprimé avec succès');
+    });
+
+    
+    return res.json({ message: 'Projet mis à jour avec succès.' });
+  } catch (error) {
+    console.error('Erreur lors de la suppression des documents :', error);
+    res.status(500).send('Erreur lors de la suppression des documents');
+  }
+};
+
+
+// Vérifiez d'abord si le document avec l'ID spécifié existe
+//   const projetRef = db.collection('projets');
+//   const snapshot = await projetRef.where('id', '==', id).get();
+
+//   // Vérifiez si le document existe
+//   if (snapshot.empty) {
+//     console.log('Aucun document trouvé avec cet ID :', id);
+//     return res.status(404).send('Aucun document trouvé avec cet ID');
+//   }
+
+//   // Si le document existe, procédez à sa suppression
+//   const documentRef = db.collection('projets').doc(id);
+//   await documentRef.;
+
+//   console.log('Document supprimé avec succès');
+//   res.status(200).send('Document supprimé avec succès');
+// } catch (error) {
+//   console.error('Erreur lors de la suppression du document :', error);
+//   res.status(500).send('Erreur lors de la suppression du document');
+// }
+
+
+
 
 module.exports = {
   authenticated,
   addProjet,
-  listProjet,
+  editProjet,
+  deleteProjet
 }
